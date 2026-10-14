@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#d63384">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Caja Registradora</title>
+<style>
+  :root{
+    --bg:#f2f4f7; --card:#ffffff; --ink:#1c2430; --muted:#6b7686; --line:#e2e6ec;
+    --brand:#2563eb; --brand-d:#1e4fc4; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+  html,body{height:100%;margin:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-user-select:none;user-select:none;overscroll-behavior:none;touch-action:manipulation}
+  input{-webkit-user-select:text;user-select:text}
+  button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation}
+
+  .app{display:flex;flex-direction:column;height:100%;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#d63384;color:#fff;flex:0 0 auto}
+  header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.2px}
+  .tabs{display:flex;gap:8px}
+  .tab{background:rgba(255,255,255,.22);color:#fff;padding:12px 22px;border-radius:12px;font-weight:700;font-size:16px;min-height:48px}
+  .tab.active{background:#fff;color:#b02a6b}
+
+  main{flex:1 1 auto;min-height:0}
+  .view{display:none;height:100%}
+  .view.active{display:flex}
+
+  /* ---------- Caja ---------- */
+  #viewPos{gap:16px;padding:16px}
+  .catalog{flex:1 1 60%;min-width:0;display:flex;flex-direction:column}
+  .search{width:100%;padding:14px 16px;font-size:18px;border:1px solid var(--line);border-radius:14px;margin-bottom:12px;background:#fff;outline:none}
+  .searchwrap{position:relative;margin-bottom:10px;flex:0 0 auto}
+  .searchwrap .search{margin-bottom:0;padding-right:56px}
+  .clearbtn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:#e8edf5;font-size:18px;font-weight:700;display:none}
+  .searchwrap.has .clearbtn{display:block}
+  .cats{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 12px;flex:0 0 auto;scrollbar-width:none}
+  .cats::-webkit-scrollbar{display:none}
+  .cats.dim{opacity:.45}
+  .cat{flex:0 0 auto;background:#fff;border:2px solid var(--line);color:var(--ink);padding:0 20px;min-height:52px;border-radius:99px;font-weight:700;font-size:17px;white-space:nowrap}
+  .cat small{margin-left:8px;color:var(--muted);font-weight:700;font-size:14px}
+  .cat.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .cat.active small{color:#dbe7ff}
+  .grid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:minmax(122px,auto);gap:12px;align-content:start;padding-bottom:8px}
+  .prod .tag{font-size:12px;color:var(--brand);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .catsel{margin-top:6px;padding:8px 10px;font-size:14px;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:150px}
+  .prod{background:var(--card);border-radius:var(--radius);padding:14px;text-align:left;box-shadow:0 1px 3px rgba(16,24,40,.08);
+    display:flex;flex-direction:column;gap:6px;min-height:118px;position:relative;border:2px solid transparent;transition:transform .08s}
+  .prod:active{transform:scale(.96);border-color:var(--brand)}
+  .prod .name{font-weight:700;font-size:17px;line-height:1.2}
+  .prod .price{font-size:22px;font-weight:800;color:var(--brand);margin-top:auto}
+  .prod .stock{font-size:13px;color:var(--muted);font-weight:600}
+  .prod.low .stock{color:var(--warn)}
+  .prod.out{opacity:.55;background:#eceff3}
+  .prod.out .stock{color:var(--bad)}
+  .badge{position:absolute;top:10px;right:10px;background:var(--bad);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px}
+
+  .cart{flex:0 0 380px;background:var(--card);border-radius:var(--radius);box-shadow:0 1px 3px rgba(16,24,40,.08);display:flex;flex-direction:column;min-height:0}
+  .cart h2{margin:0;padding:16px 18px;font-size:19px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .linkbtn{background:none;color:var(--bad);font-weight:700;font-size:15px;padding:8px}
+  .items{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 12px}
+  .empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:16px}
+  .line{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .line .info{flex:1;min-width:0}
+  .line .info b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .line .info span{color:var(--muted);font-size:14px}
+  .qty{display:flex;align-items:center;gap:6px}
+  .qbtn{width:44px;height:44px;border-radius:12px;background:#eef1f6;font-size:24px;font-weight:700;line-height:1}
+  .qbtn:active{background:#dbe2ec}
+  .qty .n{min-width:26px;text-align:center;font-weight:800;font-size:18px}
+  .line .sub{min-width:70px;text-align:right;font-weight:800;font-size:16px}
+  .totalbox{padding:14px 18px;border-top:1px solid var(--line)}
+  .totalrow{display:flex;justify-content:space-between;align-items:baseline;font-size:18px;margin-bottom:12px}
+  .totalrow strong{font-size:32px}
+  .charge{width:100%;background:var(--ok);color:#fff;font-size:22px;font-weight:800;padding:18px;border-radius:14px;min-height:64px}
+  .charge:disabled{background:#b8c2cf}
+  .charge:active:not(:disabled){filter:brightness(.92)}
+
+  /* ---------- Admin ---------- */
+  #viewAdmin{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;display:none}
+  #viewAdmin.active{display:block}
+  .lock{max-width:360px;margin:40px auto;background:#fff;border-radius:20px;padding:28px;text-align:center;box-shadow:0 2px 10px rgba(16,24,40,.1)}
+  .lock h2{margin:0 0 6px}
+  .lock p{margin:0 0 18px;color:var(--muted)}
+  .dots{display:flex;justify-content:center;gap:14px;margin:12px 0 20px;height:20px}
+  .dot{width:18px;height:18px;border-radius:50%;border:2px solid #9aa5b5}
+  .dot.on{background:var(--ink);border-color:var(--ink)}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .pad button{background:#eef1f6;font-size:28px;font-weight:700;padding:18px 0;border-radius:16px;min-height:68px}
+  .pad button:active{background:#dbe2ec}
+  .pad .ghost{background:transparent}
+  .err{color:var(--bad);font-weight:700;min-height:22px;margin-top:12px}
+  .shake{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:0 1px 3px rgba(16,24,40,.08)}
+  .kpi span{display:block;color:var(--muted);font-weight:600;font-size:14px;margin-bottom:6px}
+  .kpi b{font-size:30px}
+  .kpi.profit b{color:var(--ok)}
+  .kpi.profit.neg b{color:var(--bad)}
+  .twocol{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:16px;align-items:start}
+  .pin{width:80px;padding:10px 8px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:right;background:#fff;outline:none}
+  .newrow td{background:#ecfdf5}
+  .foldbar{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;padding:0;min-height:48px;font-size:18px;font-weight:700;text-align:left}
+  .foldbar small{color:var(--muted);font-weight:600;font-size:14px;margin-left:6px}
+  .foldbar .chev{flex:0 0 auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#eef1f6;color:var(--muted);font-size:20px}
+  .foldbar:active .chev{background:#dbe2ec}
+  #catsBody{margin-top:10px}
+  .rowbtns{display:flex;gap:6px;margin-top:6px;flex-wrap:nowrap}
+  .mini{background:#eef1f6;font-weight:700;font-size:13px;padding:8px 10px;border-radius:10px;min-height:40px;white-space:nowrap}
+  #invBody td:first-child{min-width:178px}
+  .panel:has(#invBody){overflow-x:auto}
+  .mini:active{background:#dbe2ec}
+  .mini.danger{background:#fee2e2;color:var(--bad)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  #editModal{z-index:55}
+  .pin:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .lupa{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;pointer-events:none}
+  @media (max-width:900px){.twocol{grid-template-columns:1fr}}
+  .panel{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:0 1px 3px rgba(16,24,40,.08);margin-bottom:16px}
+  .panel h3{margin:0 0 12px;font-size:18px}
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  th,td{padding:10px 6px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.4px}
+  td.r,th.r{text-align:right}
+  .rank{display:inline-flex;width:30px;height:30px;border-radius:50%;background:#eef1f6;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+  .rank.r1{background:#fde68a}.rank.r2{background:#e5e7eb}.rank.r3{background:#fed7aa}
+  .bar{height:8px;border-radius:99px;background:#e8edf5;margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
+  #addForm .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .inp{width:100%;padding:14px;font-size:18px;border:1px solid var(--line);border-radius:12px;background:#fff;outline:none}
+  .inp:focus,.search:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .primary{background:var(--brand);color:#fff;font-weight:800;font-size:18px;padding:16px 22px;border-radius:14px;min-height:56px;width:100%}
+  .primary:active{background:var(--brand-d)}
+  .secondary{background:#eef1f6;font-weight:700;padding:12px 18px;border-radius:12px;min-height:48px}
+  .restock{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+  .restock input{width:72px;padding:10px;font-size:16px;border:1px solid var(--line);border-radius:10px;text-align:center}
+  .restock button{background:var(--brand);color:#fff;font-weight:700;font-size:20px;padding:10px 14px;border-radius:10px;min-height:44px;min-width:48px}
+  .restock .minus{background:var(--bad)}
+  .adminbar{display:flex;gap:10px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap}
+  .danger{background:#fee2e2;color:var(--bad)}
+  .pill-low{color:var(--warn);font-weight:800}.pill-out{color:var(--bad);font-weight:800}
+
+  /* ---------- Modales ---------- */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal.show{display:flex}
+  .sheet{background:#fff;border-radius:20px;max-width:440px;width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px}
+  .sheet h3{margin:0 0 10px;font-size:20px}
+  .ticket{font-family:"SF Mono",Menlo,Courier,monospace;font-size:14px;background:#fff;border:1px dashed #9aa5b5;border-radius:10px;padding:16px;color:#111}
+  .ticket .c{text-align:center}
+  .ticket hr{border:0;border-top:1px dashed #9aa5b5;margin:10px 0}
+  .ticket .tl{display:flex;justify-content:space-between;gap:8px;margin:3px 0}
+  .ticket .tl span:first-child{flex:1}
+  .ticket .big{font-size:18px;font-weight:800}
+  .cashrow{display:flex;gap:10px;margin:12px 0}
+  .quick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .quick button{background:#eef1f6;padding:12px 16px;border-radius:12px;font-weight:700;min-height:48px}
+  .change{font-size:20px;font-weight:800;margin:6px 0 14px}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .actions button{flex:1}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,30px);background:#111827;color:#fff;padding:14px 22px;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:80;max-width:90vw;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.bad{background:var(--bad)}.toast.warn{background:#b45309}.toast.ok{background:var(--ok)}
+
+  @media (max-width:820px){
+    #viewPos{flex-direction:column}
+    .cart{flex:0 0 46%}
+  }
+  /* ---------- Historial de compras ---------- */
+  #ticketModal{z-index:60}
+  #dlgModal{z-index:70}
+  .sheet.wide{max-width:720px}
+  .hrow{display:grid;grid-template-columns:1fr auto auto auto;gap:14px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}
+  .hinfo b{display:block;font-size:17px}
+  .hinfo span{color:var(--muted);font-size:14px}
+  .hnum{text-align:right}
+  .hnum span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .hnum b{font-size:18px}
+  .hnum.profit b{color:var(--ok)}
+  .hnum.profit.neg b{color:var(--bad)}
+  .histbtn{background:var(--brand);color:#fff;margin-right:auto}
+  .histbtn:active{background:var(--brand-d)}
+  @media (max-width:640px){ .hrow{grid-template-columns:1fr 1fr} .hrow .secondary{grid-column:1/-1} }
+  /* ---------- Corte del día ---------- */
+  #cutModal{z-index:58}
+  .cutnav{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+  .cutnav .inp{flex:1;min-width:0;padding:10px 12px;font-size:17px}
+  .cuthead{font-size:17px;line-height:1.4;margin-bottom:12px}
+  .cutmeta{color:var(--muted);font-size:14px;font-weight:600;margin:4px 0 10px}
+  #cutModal .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+  #cutModal .kpi{padding:14px}
+  #cutModal .kpi b{font-size:24px}
+  .cutrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:17px}
+  .cutrow.total{font-weight:800;font-size:19px}
+  @media print{
+    body.printing-cut{background:#fff}
+    body.printing-cut > *:not(#cutModal){display:none!important}
+    body.printing-cut #cutModal{position:static;display:block;background:none;padding:0}
+    body.printing-cut #cutModal .sheet{max-width:none;max-height:none;overflow:visible;padding:0}
+    body.printing-cut #cutModal .actions,
+    body.printing-cut #cutModal .cutnav,
+    body.printing-cut #cutClose{display:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🧾 Caja Registradora</h1>
+    <div class="tabs">
+      <button class="tab active" data-view="viewPos">Caja</button>
+      <button class="tab" data-view="viewAdmin">Administrador 🔒</button>
+    </div>
+  </header>
+  <div id="noStore" style="display:none;background:#b45309;color:#fff;padding:8px 16px;font-weight:700;text-align:center;flex:0 0 auto">⚠️ Este visor no guarda los datos al cerrar. Abre el archivo en Safari para conservar ventas e inventario.</div>
+
+  <main>
+    <!-- CAJA -->
+    <section class="view active" id="viewPos">
+      <div class="catalog">
+        <div class="searchwrap" id="searchWrap">
+          <input class="search" id="search" type="search" placeholder="Buscar producto…" autocomplete="off">
+          <button class="clearbtn" id="clearSearch" aria-label="Borrar búsqueda">✕</button>
+        </div>
+        <div class="cats" id="cats"></div>
+        <div class="grid" id="grid"></div>
+      </div>
+      <aside class="cart">
+        <h2>Carrito <button class="linkbtn" id="clearCart">Vaciar</button></h2>
+        <div class="items" id="cartItems"></div>
+        <div class="totalbox">
+          <div class="totalrow"><span>Total</span><strong id="cartTotal">$0.00</strong></div>
+          <button class="charge" id="chargeBtn" disabled>Cobrar</button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="view" id="viewAdmin">
+      <div class="lock" id="lockBox">
+        <h2>Acceso protegido</h2>
+        <p>Ingresa el PIN de administrador</p>
+        <div class="dots" id="dots"></div>
+        <div class="pad" id="pad"></div>
+        <div class="err" id="pinErr"></div>
+      </div>
+      <div id="adminBox" style="display:none"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal cobro -->
+<div class="modal" id="payModal">
+  <div class="sheet">
+    <h3>Cobrar</h3>
+    <div class="totalrow"><span>Total a pagar</span><strong id="payTotal">$0.00</strong></div>
+    <label>Efectivo recibido</label>
+    <input class="inp" id="cashIn" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+    <div class="quick" id="quickCash" style="margin-top:12px"></div>
+    <div class="change" id="changeOut"></div>
+    <div class="actions">
+      <button class="secondary" id="payCancel">Cancelar</button>
+      <button class="primary" id="payOk">Confirmar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ticket -->
+<div class="modal" id="ticketModal">
+  <div class="sheet">
+    <div class="ticket" id="ticketBox"></div>
+    <div class="actions">
+      <button class="primary" id="ticketClose">Nueva venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar un producto (sin <form>: algunos visores bloquean los formularios) -->
+<div class="modal" id="editModal">
+  <div class="sheet">
+    <h3>✏️ Editar producto</h3>
+    <div style="margin-bottom:12px"><label>Nombre</label><input class="inp" id="eName" maxlength="40" autocomplete="off"></div>
+    <div class="row2">
+      <div><label>Categoría</label><select class="inp" id="eCat"></select></div>
+      <div id="eNewCatBox" style="display:none"><label>Nombre de la categoría</label><input class="inp" id="eNewCat" maxlength="24" autocomplete="off"></div>
+    </div>
+    <div class="row2">
+      <div><label>Precio de venta</label><input class="inp" id="ePrice" type="text" inputmode="decimal" autocomplete="off"></div>
+      <div><label>Costo</label><input class="inp" id="eCost" type="text" inputmode="decimal" autocomplete="off"></div>
+    </div>
+    <div style="margin-bottom:12px"><label>Stock actual</label><input class="inp" id="eStock" type="text" inputmode="numeric" autocomplete="off"></div>
+    <div id="editMsg" style="min-height:22px;margin-bottom:6px;font-weight:700;line-height:1.35;color:var(--bad)"></div>
+    <div class="actions">
+      <button class="secondary" id="editCancel" type="button">Cancelar</button>
+      <button class="primary" id="editSave" type="button">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal del historial de compras -->
+<div class="modal" id="histModal">
+  <div class="sheet wide">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
+      <h3 style="margin:0">🧾 Historial de Compras</h3>
+      <button class="secondary" id="histClose" type="button">Cerrar</button>
+    </div>
+    <div id="histSummary" style="color:var(--muted);font-weight:700;font-size:15px;margin-bottom:6px"></div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- Modal del corte del día -->
+<div class="modal" id="cutModal">
+  <div class="sheet wide">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0">🧮 Corte del Día</h3>
+      <button class="secondary" id="cutClose" type="button">Cerrar</button>
+    </div>
+    <div class="cutnav">
+      <button class="secondary" id="cutPrev" type="button" aria-label="Día anterior">◀</button>
+      <input class="inp" id="cutDate" type="date" aria-label="Fecha del corte">
+      <button class="secondary" id="cutNext" type="button" aria-label="Día siguiente">▶</button>
+      <button class="secondary" id="cutToday" type="button">Hoy</button>
+    </div>
+    <div id="cutBody"></div>
+    <div class="actions">
+      <button class="secondary" id="cutCopy" type="button">📋 Copiar resumen</button>
+      <button class="primary" id="cutPrint" type="button">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para cambiar el PIN de administrador -->
+<div class="modal" id="pinModal" style="z-index:56">
+  <div class="sheet">
+    <h3>🔑 Cambiar PIN de administrador</h3>
+    <div style="margin-bottom:12px"><label>PIN actual</label><input class="inp" id="pinOld" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    <div style="margin-bottom:12px"><label>PIN nuevo (4 a 6 números)</label><input class="inp" id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    <div style="margin-bottom:12px"><label>Repite el PIN nuevo</label><input class="inp" id="pinNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    <div id="pinMsg" style="min-height:22px;margin-bottom:6px;font-weight:700;line-height:1.35;color:var(--bad)"></div>
+    <div class="actions">
+      <button class="secondary" id="pinCancel" type="button">Cancelar</button>
+      <button class="primary" id="pinSave" type="button">Guardar PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de diálogo propio (reemplaza prompt/confirm, que algunos visores del iPad bloquean) -->
+<div class="modal" id="dlgModal">
+  <div class="sheet">
+    <h3 id="dlgTitle"></h3>
+    <p id="dlgMsg" style="margin:0 0 12px;color:var(--muted);font-size:16px"></p>
+    <input class="inp" id="dlgInput" maxlength="24" style="display:none" autocomplete="off">
+    <div class="actions">
+      <button class="secondary" id="dlgCancel">Cancelar</button>
+      <button class="primary" id="dlgOk">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="backupFile" accept=".json,application/json" style="display:none">
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= CONFIGURACIÓN ================= */
+  const ADMIN_PIN = "1234";        // ← PIN inicial; después se cambia desde el panel (🔑 Cambiar PIN)
+  const STORE_NAME = "Mi Tienda";  // ← nombre que sale en el ticket
+  const LOW_STOCK = 5;             // alerta de stock bajo
+  const KEY = "pos_ipad_v1";
+
+  /* ================= ESTADO ================= */
+  const defaultProducts = [
+    {id:1,name:"Café americano",price:35,cost:12,stock:40,sold:0},
+    {id:2,name:"Capuchino",price:50,cost:18,stock:30,sold:0},
+    {id:3,name:"Té helado",price:30,cost:9,stock:25,sold:0},
+    {id:4,name:"Pan dulce",price:20,cost:8,stock:50,sold:0},
+    {id:5,name:"Sándwich",price:65,cost:28,stock:15,sold:0},
+    {id:6,name:"Galleta",price:18,cost:6,stock:60,sold:0},
+    {id:7,name:"Agua embotellada",price:15,cost:7,stock:48,sold:0},
+    {id:8,name:"Jugo natural",price:40,cost:16,stock:20,sold:0}
+  ];
+  const DEFAULT_CATS = ["Bebidas","Snacks","Comida"];
+  const DEFAULT_CAT_BY_NAME = {
+    "Café americano":"Bebidas","Capuchino":"Bebidas","Té helado":"Bebidas","Agua embotellada":"Bebidas","Jugo natural":"Bebidas",
+    "Pan dulce":"Snacks","Galleta":"Snacks","Sándwich":"Comida"
+  };
+  let state = load();
+  let cart = [];          // {id, qty}
+  let adminOK = false;
+  let activeCat = "Todas";
+  let adminQ = "";        // texto de la lupa del inventario
+  let lastAddedId = null; // último producto agregado (se resalta en el inventario)
+  let catsOpen = false;   // barra plegable de categorías (plegada al inicio para ahorrar espacio)
+  const foldOpen = {rank:false, add:false, inv:false};   // paneles plegables: más vendidos, agregar producto, inventario
+  // Encabezado plegable con el mismo estilo que Categorías
+  function foldHead(key, title, small){
+    return `<button class="foldbar" type="button" data-fold="${key}" aria-expanded="${foldOpen[key]}">
+      <span>${title}${small ? `<small>${small}</small>` : ""}</span>
+      <span class="chev">${foldOpen[key] ? "▾" : "▸"}</span>
+    </button>`;
+  }
+  const foldBodyStyle = key => `display:${foldOpen[key] ? "block" : "none"};margin-top:10px`;
+  let pin = "";
+
+  function load(){
+    let s = null;
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){ const p = JSON.parse(raw); if(p && Array.isArray(p.products)) s = p; }
+    }catch(e){}
+    if(!s) s = {products: JSON.parse(JSON.stringify(defaultProducts)), sales: [], nextId: 9, ticketNo: 1};
+    return migrate(s);
+  }
+  // migración: datos guardados con versiones anteriores no traen categorías
+  function migrate(s){
+    if(!Array.isArray(s.cats) || !s.cats.length) s.cats = DEFAULT_CATS.slice();
+    s.products.forEach(p => {
+      if(!p.cat) p.cat = DEFAULT_CAT_BY_NAME[p.name] || "Otros";
+      if(!s.cats.includes(p.cat)) s.cats.push(p.cat);
+    });
+    return s;
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  // PIN vigente: el que se guardó al cambiarlo, o el inicial si nunca se cambió
+  const PIN_RE = /^\d{4,6}$/;
+  function getPin(){ return typeof state.pin === "string" && PIN_RE.test(state.pin) ? state.pin : ADMIN_PIN; }
+
+  /* ================= UTILIDADES ================= */
+  const $ = s => document.querySelector(s);
+  const money = n => "$" + (Number(n)||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const byId = id => state.products.find(p => p.id === id);
+  let toastT;
+  function toast(msg, type){
+    const t = $("#toast"); t.textContent = msg; t.className = "toast show " + (type||"");
+    clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+  /* Diálogo propio: devuelve una promesa. Con "input" resuelve el texto escrito; sin él, true. Cancelar resuelve null. */
+  let dlgDone = null;
+  function dialog(opts){
+    return new Promise(resolve => {
+      if(dlgDone) dlgDone(null);
+      const hasInput = opts.input !== undefined;
+      $("#dlgTitle").textContent = opts.title || "";
+      $("#dlgMsg").textContent = opts.msg || "";
+      $("#dlgMsg").style.display = opts.msg ? "block" : "none";
+      const inp = $("#dlgInput");
+      inp.style.display = hasInput ? "block" : "none";
+      inp.value = hasInput ? opts.input : "";
+      const ok = $("#dlgOk");
+      ok.textContent = opts.okText || "Aceptar";
+      ok.style.background = opts.danger ? "var(--bad)" : "";
+      dlgDone = v => { $("#dlgModal").classList.remove("show"); dlgDone = null; resolve(v); };
+      $("#dlgModal").classList.add("show");
+      if(hasInput) setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    });
+  }
+  $("#dlgOk").addEventListener("click", () => { if(dlgDone) dlgDone($("#dlgInput").style.display === "none" ? true : $("#dlgInput").value); });
+  $("#dlgCancel").addEventListener("click", () => { if(dlgDone) dlgDone(null); });
+  $("#dlgInput").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); $("#dlgOk").click(); } });
+
+  function clampCart(){
+    let changed = false;
+    cart = cart.filter(l => {
+      const p = byId(l.id);
+      if(!p || p.stock <= 0){ changed = true; return false; }
+      if(l.qty > p.stock){ l.qty = p.stock; changed = true; }
+      return true;
+    });
+    return changed;
+  }
+  function inCart(id){ const l = cart.find(c=>c.id===id); return l ? l.qty : 0; }
+  function cartTotal(){ return cart.reduce((s,l)=> s + byId(l.id).price * l.qty, 0); }
+
+  /* ================= NAVEGACIÓN ================= */
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    t.classList.add("active"); $("#"+t.dataset.view).classList.add("active");
+    if(t.dataset.view === "viewAdmin"){ adminOK ? renderAdmin() : resetPin(); }
+    else { adminOK = false; showLock(); }   // al salir del panel se vuelve a bloquear
+  }));
+
+  /* ================= CAJA ================= */
+  function renderGrid(){
+    const q = $("#search").value.trim().toLowerCase();
+    // con texto en la búsqueda se busca en todo el catálogo; sin texto se filtra por categoría
+    const list = state.products
+      .filter(p => q ? p.name.toLowerCase().includes(q) : (activeCat === "Todas" || p.cat === activeCat))
+      .sort((a,b) => a.name.localeCompare(b.name, "es"));
+    $("#cats").classList.toggle("dim", !!q);
+    $("#searchWrap").classList.toggle("has", !!q);
+    $("#grid").innerHTML = list.length ? list.map(p => {
+      const avail = p.stock - inCart(p.id);
+      const cls = p.stock <= 0 ? "out" : (p.stock <= LOW_STOCK ? "low" : "");
+      return `<button class="prod ${cls}" data-id="${p.id}">
+        ${p.stock<=0 ? '<span class="badge">AGOTADO</span>' : ''}
+        ${q ? '<span class="tag">'+esc(p.cat||"")+'</span>' : ''}
+        <span class="name">${esc(p.name)}</span>
+        <span class="stock">${p.stock<=0 ? 'Sin stock' : 'Disponibles: '+avail}</span>
+        <span class="price">${money(p.price)}</span>
+      </button>`;
+    }).join("") : '<div class="empty" style="grid-column:1/-1">Sin resultados</div>';
+  }
+  $("#grid").addEventListener("click", e => {
+    const b = e.target.closest(".prod"); if(!b) return;
+    addToCart(Number(b.dataset.id));
+  });
+  $("#search").addEventListener("input", renderGrid);
+  $("#clearSearch").addEventListener("click", () => { $("#search").value = ""; renderGrid(); });
+  function renderCats(){
+    if(activeCat !== "Todas" && !state.cats.includes(activeCat)) activeCat = "Todas";
+    const count = c => state.products.filter(p => p.cat === c).length;
+    $("#cats").innerHTML =
+      `<button class="cat ${activeCat==="Todas"?"active":""}" data-cat="Todas">Todas<small>${state.products.length}</small></button>` +
+      state.cats.map(c => `<button class="cat ${activeCat===c?"active":""}" data-cat="${esc(c)}">${esc(c)}<small>${count(c)}</small></button>`).join("");
+  }
+  $("#cats").addEventListener("click", e => {
+    const b = e.target.closest(".cat"); if(!b) return;
+    activeCat = b.dataset.cat; $("#search").value = "";
+    renderCats(); renderGrid(); $("#grid").scrollTop = 0;
+  });
+
+  function addToCart(id){
+    const p = byId(id); if(!p) return;
+    if(p.stock <= 0){ toast("⚠️ \""+p.name+"\" está agotado", "bad"); return; }
+    const l = cart.find(c=>c.id===id);
+    if(l){
+      if(l.qty >= p.stock){ toast("⚠️ Solo hay "+p.stock+" de \""+p.name+"\"", "warn"); return; }
+      l.qty++;
+    } else cart.push({id, qty:1});
+    renderCart(); renderGrid();
+  }
+  function renderCart(){
+    const box = $("#cartItems");
+    if(!cart.length){ box.innerHTML = '<div class="empty">Toca un producto para agregarlo</div>'; }
+    else box.innerHTML = cart.map(l => {
+      const p = byId(l.id);
+      return `<div class="line" data-id="${p.id}">
+        <div class="info"><b>${esc(p.name)}</b><span>${money(p.price)} c/u</span></div>
+        <div class="qty">
+          <button class="qbtn" data-act="minus">−</button>
+          <span class="n">${l.qty}</span>
+          <button class="qbtn" data-act="plus">+</button>
+        </div>
+        <div class="sub">${money(p.price*l.qty)}</div>
+      </div>`;
+    }).join("");
+    $("#cartTotal").textContent = money(cartTotal());
+    $("#chargeBtn").disabled = !cart.length;
+  }
+  $("#cartItems").addEventListener("click", e => {
+    const btn = e.target.closest("[data-act]"); if(!btn) return;
+    const id = Number(btn.closest(".line").dataset.id);
+    if(btn.dataset.act === "plus") addToCart(id);
+    else {
+      const l = cart.find(c=>c.id===id); if(!l) return;
+      l.qty--; if(l.qty<=0) cart = cart.filter(c=>c.id!==id);
+      renderCart(); renderGrid();
+    }
+  });
+  $("#clearCart").addEventListener("click", () => { cart = []; renderCart(); renderGrid(); });
+
+  /* ---------- Cobro ---------- */
+  $("#chargeBtn").addEventListener("click", () => {
+    if(!cart.length) return;
+    // revalidar stock
+    for(const l of cart){
+      const p = byId(l.id);
+      if(p.stock < l.qty){ toast("⚠️ Stock insuficiente de \""+p.name+"\"", "bad"); return; }
+    }
+    const total = cartTotal();
+    $("#payTotal").textContent = money(total);
+    $("#cashIn").value = "";
+    const opts = [...new Set([total, Math.ceil(total/10)*10, Math.ceil(total/50)*50, Math.ceil(total/100)*100, Math.ceil(total/500)*500])]
+      .filter(v=>v>=total).slice(0,5);
+    $("#quickCash").innerHTML = opts.map(v=>`<button data-v="${v}">${money(v)}</button>`).join("");
+    updateChange();
+    $("#payModal").classList.add("show");
+  });
+  $("#quickCash").addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    $("#cashIn").value = b.dataset.v; updateChange();
+  });
+  $("#cashIn").addEventListener("input", updateChange);
+  function updateChange(){
+    const total = cartTotal(), cash = parseFloat($("#cashIn").value);
+    const out = $("#changeOut");
+    if(isNaN(cash) || $("#cashIn").value===""){ out.textContent = ""; out.style.color=""; return; }
+    if(cash < total){ out.textContent = "Faltan " + money(total-cash); out.style.color = "var(--bad)"; }
+    else { out.textContent = "Cambio: " + money(cash-total); out.style.color = "var(--ok)"; }
+  }
+  $("#payCancel").addEventListener("click", () => $("#payModal").classList.remove("show"));
+  $("#payOk").addEventListener("click", () => {
+    const total = cartTotal();
+    const raw = $("#cashIn").value;
+    const cash = raw === "" ? total : parseFloat(raw);   // si se deja vacío, se asume pago exacto
+    if(isNaN(cash) || cash < total){ toast("El efectivo recibido es menor al total", "bad"); return; }
+    for(const l of cart){ if(byId(l.id).stock < l.qty){ toast("Stock insuficiente", "bad"); return; } }
+
+    const items = cart.map(l => {
+      const p = byId(l.id);
+      p.stock -= l.qty; p.sold = (p.sold||0) + l.qty;       // resta de almacén
+      return {id:p.id, name:p.name, qty:l.qty, price:p.price, cost:p.cost};
+    });
+    const sale = {no: state.ticketNo++, date: new Date().toISOString(), items, total, cash, change: cash-total};
+    state.sales.push(sale); save();
+
+    const warns = items.map(i=>byId(i.id)).filter(p=>p.stock<=0);
+    cart = [];
+    $("#payModal").classList.remove("show");
+    showTicket(sale);
+    renderCart(); renderGrid();
+    if(warns.length) setTimeout(()=>toast("⚠️ Agotado: " + warns.map(p=>p.name).join(", "), "bad"), 400);
+    else {
+      const low = items.map(i=>byId(i.id)).filter(p=>p.stock<=LOW_STOCK);
+      if(low.length) setTimeout(()=>toast("Stock bajo: " + low.map(p=>p.name+" ("+p.stock+")").join(", "), "warn"), 400);
+    }
+  });
+
+  function showTicket(s, fromHistory){
+    $("#ticketClose").textContent = fromHistory ? "Cerrar" : "Nueva venta";
+    const d = new Date(s.date);
+    const fecha = fmtDate(s.date);   // mismo formato que el historial: fecha y hora exactas
+    $("#ticketBox").innerHTML = `
+      <div class="c big">${esc(STORE_NAME)}</div>
+      <div class="c">Ticket #${String(s.no).padStart(5,"0")}</div>
+      <div class="c">${fecha}</div>
+      <hr>
+      ${s.items.map(i=>`<div class="tl"><span>${i.qty} × ${esc(i.name)}</span><span>${money(i.qty*i.price)}</span></div>
+        <div class="tl" style="color:#666;font-size:12px"><span>&nbsp;&nbsp;${money(i.price)} c/u</span><span></span></div>`).join("")}
+      <hr>
+      <div class="tl big"><span>TOTAL</span><span>${money(s.total)}</span></div>
+      <div class="tl"><span>Efectivo</span><span>${money(s.cash)}</span></div>
+      <div class="tl"><span>Cambio</span><span>${money(s.change)}</span></div>
+      <hr>
+      <div class="c">¡Gracias por su compra!</div>`;
+    $("#ticketModal").classList.add("show");
+  }
+  $("#ticketClose").addEventListener("click", () => $("#ticketModal").classList.remove("show"));
+
+  /* ---------- Historial de compras ---------- */
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString("es-MX", {day:"2-digit", month:"2-digit", year:"numeric"}) + " " +
+           d.toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false});
+  }
+  const saleProfit = s => s.items.reduce((t, i) => t + (i.price - i.cost) * i.qty, 0);
+  function renderHistory(){
+    const sales = state.sales.slice().reverse();   // la más reciente primero
+    const totalAll = sales.reduce((t, s) => t + s.total, 0);
+    const profitAll = sales.reduce((t, s) => t + saleProfit(s), 0);
+    $("#histSummary").textContent = sales.length
+      ? sales.length + (sales.length === 1 ? " compra" : " compras") + " · Total " + money(totalAll) + " · Ganancia " + money(profitAll)
+      : "";
+    $("#histList").innerHTML = sales.length ? sales.map(s => {
+      const g = saleProfit(s);
+      return `<div class="hrow" data-no="${s.no}">
+        <div class="hinfo"><b>Ticket #${String(s.no).padStart(5,"0")}</b><span>${fmtDate(s.date)}</span></div>
+        <div class="hnum"><span>Total pagado</span><b>${money(s.total)}</b></div>
+        <div class="hnum profit ${g < 0 ? "neg" : ""}"><span>Ganancia</span><b>${money(g)}</b></div>
+        <button class="secondary" type="button" data-act="viewticket">Ver Ticket</button>
+      </div>`;
+    }).join("") : '<div class="empty">Aún no hay compras registradas</div>';
+  }
+  $("#histList").addEventListener("click", e => {
+    const b = e.target.closest('[data-act="viewticket"]'); if(!b) return;
+    const s = state.sales.find(x => x.no === Number(b.closest(".hrow").dataset.no));
+    if(s) showTicket(s, true);
+  });
+  $("#histClose").addEventListener("click", () => $("#histModal").classList.remove("show"));
+
+  /* ================= ADMIN: PIN ================= */
+  function buildPad(){
+    const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+    $("#pad").innerHTML = keys.map(k => k==="" ? '<button class="ghost" disabled></button>' : `<button data-k="${k}">${k}</button>`).join("");
+  }
+  function renderDots(){
+    $("#dots").innerHTML = Array.from({length:getPin().length}, (_,i)=>`<div class="dot ${i<pin.length?'on':''}"></div>`).join("");
+  }
+  function resetPin(){ pin = ""; $("#pinErr").textContent = ""; showLock(); renderDots(); }
+  function showLock(){
+    $("#lockBox").style.display = adminOK ? "none" : "block";
+    $("#adminBox").style.display = adminOK ? "block" : "none";
+  }
+  $("#pad").addEventListener("click", e => {
+    const b = e.target.closest("button[data-k]"); if(!b) return;
+    const k = b.dataset.k;
+    if(k === "⌫") pin = pin.slice(0,-1);
+    else if(pin.length < getPin().length) pin += k;
+    renderDots();
+    if(pin.length === getPin().length){
+      if(pin === getPin()){ adminOK = true; pin = ""; showLock(); renderAdmin(); }
+      else {
+        $("#pinErr").textContent = "PIN incorrecto";
+        const box = $("#lockBox"); box.classList.remove("shake"); void box.offsetWidth; box.classList.add("shake");
+        pin = ""; setTimeout(renderDots, 250);
+      }
+    }
+  });
+
+  /* ================= ADMIN: PANEL ================= */
+  function stats(){
+    let revenue = 0, cost = 0, units = 0;
+    state.sales.forEach(s => s.items.forEach(i => { revenue += i.price*i.qty; cost += i.cost*i.qty; units += i.qty; }));
+    return {revenue, cost, profit: revenue-cost, units, tickets: state.sales.length};
+  }
+  function ranking(){
+    const map = {};
+    state.sales.forEach(s => s.items.forEach(i => {
+      const m = map[i.id] || (map[i.id] = {name:i.name, qty:0, revenue:0, profit:0});
+      m.name = byId(i.id) ? byId(i.id).name : i.name;
+      m.qty += i.qty; m.revenue += i.price*i.qty; m.profit += (i.price-i.cost)*i.qty;
+    }));
+    return Object.values(map).sort((a,b)=> b.qty-a.qty || b.revenue-a.revenue);
+  }
+  function renderAdmin(){
+    const st = stats(), rk = ranking(), max = rk.length ? rk[0].qty : 1;
+    $("#adminBox").innerHTML = `
+      <div class="adminbar">
+        <button class="secondary histbtn" id="openHistory" type="button">🧾 Historial de Compras</button>
+        <button class="secondary" id="openCut" type="button">🧮 Corte del Día</button>
+        <button class="secondary" id="backupDownload" type="button">💾 Descargar Respaldo</button>
+        <button class="secondary" id="backupLoad" type="button">📂 Cargar Respaldo</button>
+        <button class="secondary" id="changePin" type="button">🔑 Cambiar PIN</button>
+        <button class="secondary" id="lockNow">🔒 Bloquear</button>
+        <button class="secondary danger" id="resetSales">Reiniciar ventas</button>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span>Ingresos totales</span><b>${money(st.revenue)}</b></div>
+        <div class="kpi"><span>Costo total</span><b>${money(st.cost)}</b></div>
+        <div class="kpi profit ${st.profit<0?'neg':''}"><span>Ganancia neta</span><b>${money(st.profit)}</b></div>
+        <div class="kpi"><span>Ventas / Unidades</span><b>${st.tickets} / ${st.units}</b></div>
+      </div>
+
+      <div class="twocol">
+        <div>
+          <div class="panel">
+            ${foldHead("rank", "🏆 Productos más vendidos", "(" + rk.length + ")")}
+            <div data-foldbody="rank" style="${foldBodyStyle("rank")}">
+            ${rk.length ? `<table><thead><tr><th>#</th><th>Producto</th><th class="r">Uds.</th><th class="r">Ingreso</th></tr></thead><tbody>
+              ${rk.map((r,i)=>`<tr><td><span class="rank r${i+1}">${i+1}</span></td>
+                <td>${esc(r.name)}<div class="bar"><i style="width:${Math.round(r.qty/max*100)}%"></i></div></td>
+                <td class="r"><b>${r.qty}</b></td><td class="r">${money(r.revenue)}</td></tr>`).join("")}
+              </tbody></table>` : '<div class="empty">Aún no hay ventas registradas</div>'}
+            </div>
+          </div>
+          <div class="panel">
+            <button class="foldbar" type="button" id="catsToggle" aria-expanded="${catsOpen}" aria-controls="catsBody">
+              <span>🏷️ Categorías<small>(${state.cats.length})</small></span>
+              <span class="chev" id="catsChev">${catsOpen ? "▾" : "▸"}</span>
+            </button>
+            <div id="catsBody" style="display:${catsOpen ? "block" : "none"}">
+            <table><tbody>
+              ${state.cats.map(c=>`<tr data-cat="${esc(c)}">
+                <td><b>${esc(c)}</b><div style="color:var(--muted);font-size:13px">${state.products.filter(p=>p.cat===c).length} productos</div></td>
+                <td class="r" style="white-space:nowrap"><button class="mini" type="button" data-act="renamecat">Renombrar</button> <button class="mini danger" type="button" data-act="delcat">Eliminar</button></td>
+              </tr>`).join("")}
+            </tbody></table>
+            <div style="color:var(--muted);font-size:13px;margin-top:12px">Para crear una categoría nueva, elige «＋ Nueva categoría…» en el formulario de <b>Agregar producto</b>.</div>
+            </div>
+          </div>
+          <div class="panel">
+            ${foldHead("add", "➕ Agregar producto")}
+            <div data-foldbody="add" style="${foldBodyStyle("add")}">
+            <div id="addForm">
+              <div style="margin-bottom:12px"><label>Nombre</label><input class="inp" id="fName" maxlength="40" placeholder="Ej. Brownie"></div>
+              <div class="row">
+                <div><label>Categoría</label><select class="inp" id="fCat">${state.cats.map(c=>`<option value="${esc(c)}" ${c===activeCat?"selected":""}>${esc(c)}</option>`).join("")}<option value="__new">＋ Nueva categoría…</option></select></div>
+                <div id="newCatBox" style="display:none"><label>Nombre de la categoría</label><input class="inp" id="fNewCat" maxlength="24" placeholder="Ej. Postres"></div>
+              </div>
+              <div class="row">
+                <div><label>Precio de venta</label><input class="inp" id="fPrice" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+                <div><label>Costo</label><input class="inp" id="fCost" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+              </div>
+              <div style="margin-bottom:14px"><label>Stock inicial</label><input class="inp" id="fStock" type="text" inputmode="numeric" placeholder="0" autocomplete="off"></div>
+              <div id="addMsg" style="min-height:22px;margin-bottom:10px;font-weight:700;line-height:1.35"></div>
+              <button class="primary" id="addProdBtn" type="button">Agregar al catálogo</button>
+            </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          ${foldHead("inv", "📦 Inventario", "(" + state.products.length + ")")}
+          <div data-foldbody="inv" style="${foldBodyStyle("inv")}">
+          <div class="searchwrap ${adminQ ? "has" : ""}" id="invSearchWrap" style="margin-bottom:6px">
+            <span class="lupa">🔍</span>
+            <input class="search" id="invSearch" type="search" placeholder="Buscar mercancía o categoría…" autocomplete="off" value="${esc(adminQ)}" style="padding-left:46px">
+            <button class="clearbtn" id="invClear" type="button" aria-label="Borrar búsqueda">✕</button>
+          </div>
+          <div id="invCount" style="color:var(--muted);font-size:13px;margin:0 0 8px"></div>
+          <table><thead><tr><th>Producto</th><th class="r">Venta</th><th class="r">Costo</th><th class="r">Stock</th><th class="r">Ajustar stock</th></tr></thead><tbody id="invBody">
+            ${state.products.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).map(p=>`<tr data-id="${p.id}" class="${p.id === lastAddedId ? "newrow" : ""}" data-q="${esc((p.name + " " + (p.cat || "")).toLowerCase())}">
+              <td>${esc(p.name)}<br><select class="catsel" data-act="setcat">${state.cats.map(c=>`<option value="${esc(c)}" ${p.cat===c?"selected":""}>${esc(c)}</option>`).join("")}</select><div class="rowbtns"><button class="mini" type="button" data-act="editprod">✏️ Editar</button><button class="mini danger" type="button" data-act="delprod">🗑 Eliminar</button></div></td><td class="r"><input class="pin" type="number" inputmode="decimal" min="0" step="0.01" value="${p.price}" data-act="setprice" aria-label="Precio de venta"></td><td class="r"><input class="pin" type="number" inputmode="decimal" min="0" step="0.01" value="${p.cost}" data-act="setcost" aria-label="Costo"></td>
+              <td class="r ${p.stock<=0?'pill-out':(p.stock<=LOW_STOCK?'pill-low':'')}">${p.stock<=0?'AGOTADO':p.stock}</td>
+              <td class="r"><div class="restock"><button class="minus" type="button" data-act="unstock" aria-label="Quitar stock">−</button><input type="number" inputmode="numeric" min="1" step="1" placeholder="Cant."><button type="button" data-act="restock" aria-label="Agregar stock">＋</button></div></td>
+            </tr>`).join("")}
+          </tbody></table>
+          </div>
+        </div>
+      </div>`;
+    applyInvFilter();
+  }
+  // Lupa del inventario: filtra las filas sin volver a dibujar el panel (así no se pierde el cursor)
+  function applyInvFilter(){
+    const q = adminQ.trim().toLowerCase();
+    let shown = 0, total = 0;
+    document.querySelectorAll("#invBody tr").forEach(tr => {
+      total++;
+      const ok = !q || tr.dataset.q.includes(q);
+      tr.style.display = ok ? "" : "none";
+      if(ok) shown++;
+    });
+    const c = $("#invCount");
+    if(c) c.textContent = q ? (shown ? shown + " de " + total + " productos" : "Sin resultados para \"" + adminQ.trim() + "\"") : total + " productos";
+    const w = $("#invSearchWrap");
+    if(w) w.classList.toggle("has", !!q);
+  }
+  $("#adminBox").addEventListener("input", e => {
+    if(e.target.id === "invSearch"){ adminQ = e.target.value; applyInvFilter(); }
+  });
+  $("#adminBox").addEventListener("click", async e => {
+    if(e.target.id === "lockNow"){ adminOK = false; resetPin(); return; }
+    if(e.target.id === "resetSales"){
+      if(await dialog({title:"Reiniciar ventas", msg:"¿Borrar todo el historial de ventas y el ranking? El stock actual no cambia.", okText:"Borrar", danger:true}) === true){
+        state.sales = []; state.products.forEach(p=>p.sold=0); state.ticketNo = 1; save(); renderAdmin(); toast("Historial reiniciado","ok");
+      }
+      return;
+    }
+    if(e.target.closest("#catsToggle")){
+      catsOpen = !catsOpen;
+      $("#catsBody").style.display = catsOpen ? "block" : "none";
+      $("#catsChev").textContent = catsOpen ? "▾" : "▸";
+      $("#catsToggle").setAttribute("aria-expanded", String(catsOpen));
+      return;
+    }
+    if(e.target.id === "openHistory"){ renderHistory(); $("#histModal").classList.add("show"); return; }
+    const editBtn = e.target.closest('[data-act="editprod"]');
+    if(editBtn){ openEdit(Number(editBtn.closest("tr").dataset.id)); return; }
+    const delBtn = e.target.closest('[data-act="delprod"]');
+    if(delBtn){ const delId = Number(delBtn.closest("tr").dataset.id); await deleteProduct(delId); return; }
+    if(e.target.id === "invClear"){
+      adminQ = ""; $("#invSearch").value = ""; applyInvFilter();
+      return;
+    }
+    const cb = e.target.closest('[data-act="renamecat"],[data-act="delcat"]');
+    if(cb){
+      const old = cb.closest("tr").dataset.cat;
+      if(cb.dataset.act === "renamecat"){
+        const input = await dialog({title:"Renombrar categoría", msg:"Nuevo nombre para \"" + old + "\":", input: old, okText:"Guardar"});
+        if(input === null) return;
+        const nn = input.trim().slice(0, 24);
+        if(!nn){ toast("El nombre no puede estar vacío", "bad"); return; }
+        if(state.cats.some(c => c !== old && c.toLowerCase() === nn.toLowerCase())){ toast("Ya existe una categoría con ese nombre", "warn"); return; }
+        state.cats = state.cats.map(c => c === old ? nn : c);
+        state.products.forEach(p => { if(p.cat === old) p.cat = nn; });
+        if(activeCat === old) activeCat = nn;
+        save(); renderAdmin(); renderCats(); renderGrid(); toast("Categoría renombrada: " + nn, "ok");
+      } else {
+        const n = state.products.filter(p => p.cat === old).length;
+        if(state.cats.length <= 1){ toast("Debe quedar al menos una categoría", "warn"); return; }
+        if(old === "Otros" && n > 0){ toast("\"Otros\" tiene productos: muévelos primero a otra categoría", "warn"); return; }
+        const msg = n ? "¿Eliminar \"" + old + "\"? Sus " + n + " productos pasarán a \"Otros\"." : "¿Eliminar la categoría \"" + old + "\"?";
+        if(await dialog({title:"Eliminar categoría", msg, okText:"Eliminar", danger:true}) !== true) return;
+        if(n){
+          state.products.forEach(p => { if(p.cat === old) p.cat = "Otros"; });
+          if(!state.cats.includes("Otros")) state.cats.push("Otros");
+        }
+        state.cats = state.cats.filter(c => c !== old);
+        save(); renderAdmin(); renderCats(); renderGrid(); toast("Categoría eliminada", "ok");
+      }
+      return;
+    }
+    const b = e.target.closest('[data-act="restock"],[data-act="unstock"]');
+    if(b){
+      const tr = b.closest("tr"), p = byId(Number(tr.dataset.id));
+      const n = parseInt(tr.querySelector(".restock input").value, 10);
+      if(!n || n < 1){ toast("Escribe una cantidad válida","warn"); return; }
+      if(b.dataset.act === "unstock"){
+        if(n > p.stock){ toast("Solo hay " + p.stock + " de \"" + p.name + "\": no se pueden quitar " + n, "warn"); return; }
+        p.stock -= n;
+      } else p.stock += n;
+      const adjusted = clampCart();   // si el stock bajó, el carrito en curso no puede exceder lo disponible
+      save(); renderAdmin(); renderGrid(); renderCart();
+      toast("Stock de " + p.name + ": " + p.stock + (adjusted ? " (se ajustó el carrito)" : ""), p.stock <= 0 ? "bad" : "ok");
+    }
+  });
+  // Mensaje fijo junto al botón (el aviso inferior puede quedar tapado por el teclado del iPad)
+  function addMsg(text, type){
+    const m = $("#addMsg"); if(!m) return;
+    m.textContent = text;
+    m.style.color = type === "ok" ? "var(--ok)" : (type === "warn" ? "#b45309" : "var(--bad)");
+  }
+  const num = v => parseFloat(String(v).trim().replace(",", "."));
+  function addProduct(){
+    const name = $("#fName").value.trim();
+    const price = num($("#fPrice").value), cost = num($("#fCost").value);
+    const stock = parseInt(String($("#fStock").value).trim(), 10);
+    if(!name){ addMsg("Escribe el nombre del producto", "bad"); $("#fName").focus(); return; }
+    if(isNaN(price) || price < 0){ addMsg("Escribe un precio de venta válido (ej. 35 o 35.50)", "bad"); $("#fPrice").focus(); return; }
+    if(isNaN(cost) || cost < 0){ addMsg("Escribe un costo válido (ej. 12 o 12.50)", "bad"); $("#fCost").focus(); return; }
+    if(isNaN(stock) || stock < 0){ addMsg("Escribe el stock inicial (0 o más, número entero)", "bad"); $("#fStock").focus(); return; }
+    if(state.products.some(p => p.name.toLowerCase() === name.toLowerCase())){ addMsg("Ya existe un producto llamado \"" + name + "\"", "warn"); return; }
+    let cat = $("#fCat").value;
+    if(cat === "__new"){
+      cat = $("#fNewCat").value.trim().slice(0, 24);
+      if(!cat){ addMsg("Escribe el nombre de la nueva categoría", "bad"); $("#fNewCat").focus(); return; }
+      cat = state.cats.find(c => c.toLowerCase() === cat.toLowerCase()) || cat;
+    }
+    if(!state.cats.includes(cat)) state.cats.push(cat);
+    const id = state.nextId++;
+    const pr = Math.round(price * 100) / 100, co = Math.round(cost * 100) / 100;
+    state.products.push({id, name, price: pr, cost: co, stock, sold: 0, cat});
+    lastAddedId = id;
+    save(); renderAdmin(); renderCats(); renderGrid();
+    addMsg("✅ Agregado: " + name + " · " + cat + " · venta " + money(pr) + " · costo " + money(co) + " · stock " + stock, "ok");
+    toast("Producto agregado: " + name + " (" + cat + ")", "ok");
+  }
+  /* ---------- Editar y eliminar productos ---------- */
+  let editingId = null;
+  function openEdit(id){
+    const p = byId(id); if(!p) return;
+    editingId = id;
+    $("#eName").value = p.name;
+    $("#ePrice").value = p.price;
+    $("#eCost").value = p.cost;
+    $("#eStock").value = p.stock;
+    $("#eCat").innerHTML = state.cats.map(c => `<option value="${esc(c)}" ${c === p.cat ? "selected" : ""}>${esc(c)}</option>`).join("") +
+      '<option value="__new">＋ Nueva categoría…</option>';
+    $("#eNewCatBox").style.display = "none";
+    $("#eNewCat").value = "";
+    $("#editMsg").textContent = "";
+    $("#editModal").classList.add("show");
+  }
+  function closeEdit(){ $("#editModal").classList.remove("show"); editingId = null; }
+  function saveEdit(){
+    const p = byId(editingId);
+    if(!p){ closeEdit(); return; }
+    const fail = (t, sel) => { $("#editMsg").textContent = t; if(sel) $(sel).focus(); };
+    const name = $("#eName").value.trim();
+    const price = num($("#ePrice").value), cost = num($("#eCost").value);
+    const stock = parseInt(String($("#eStock").value).trim(), 10);
+    if(!name){ fail("Escribe el nombre del producto", "#eName"); return; }
+    if(isNaN(price) || price < 0){ fail("Escribe un precio de venta válido (ej. 35 o 35.50)", "#ePrice"); return; }
+    if(isNaN(cost) || cost < 0){ fail("Escribe un costo válido (ej. 12 o 12.50)", "#eCost"); return; }
+    if(isNaN(stock) || stock < 0){ fail("Escribe el stock (0 o más, número entero)", "#eStock"); return; }
+    if(state.products.some(x => x.id !== p.id && x.name.toLowerCase() === name.toLowerCase())){ fail("Ya existe un producto llamado \"" + name + "\"", "#eName"); return; }
+    let cat = $("#eCat").value;
+    if(cat === "__new"){
+      cat = $("#eNewCat").value.trim().slice(0, 24);
+      if(!cat){ fail("Escribe el nombre de la nueva categoría", "#eNewCat"); return; }
+      cat = state.cats.find(c => c.toLowerCase() === cat.toLowerCase()) || cat;
+    }
+    if(!state.cats.includes(cat)) state.cats.push(cat);
+    p.name = name; p.cat = cat; p.stock = stock;
+    p.price = Math.round(price * 100) / 100;
+    p.cost = Math.round(cost * 100) / 100;
+    clampCart();   // si el stock bajó, el carrito en curso no puede exceder lo disponible
+    save(); closeEdit();
+    renderAdmin(); renderCats(); renderGrid(); renderCart();
+    toast("Producto actualizado: " + name, "ok");
+  }
+  async function deleteProduct(id){
+    const p = byId(id); if(!p) return;
+    const sold = state.sales.some(s => s.items.some(i => i.id === id));
+    const ok = await dialog({
+      title: "Eliminar producto",
+      msg: "¿Eliminar \"" + p.name + "\" del catálogo?" + (sold ? " Las ventas ya registradas se conservan en el historial y los reportes." : ""),
+      okText: "Eliminar", danger: true
+    });
+    if(ok !== true) return;
+    state.products = state.products.filter(x => x.id !== id);
+    clampCart();   // lo quita del carrito en curso si estaba
+    save(); renderAdmin(); renderCats(); renderGrid(); renderCart();
+    toast("Producto eliminado: " + p.name, "ok");
+  }
+  $("#editSave").addEventListener("click", saveEdit);
+  $("#editCancel").addEventListener("click", closeEdit);
+  $("#eCat").addEventListener("change", e => { $("#eNewCatBox").style.display = e.target.value === "__new" ? "block" : "none"; });
+  $("#editModal").addEventListener("keydown", e => {
+    if(e.key === "Enter" && e.target.tagName === "INPUT"){ e.preventDefault(); saveEdit(); }
+  });
+
+  // Sin <form>: algunos visores (iframes con permisos limitados) bloquean en silencio el envío de formularios
+  $("#adminBox").addEventListener("click", e => {
+    if(e.target.closest("#addProdBtn")) addProduct();
+  });
+  // al tocar el botón se conserva el enfoque del campo, así el teclado no mueve el botón y no se pierde el toque
+  $("#adminBox").addEventListener("mousedown", e => {
+    if(e.target.id === "addProdBtn") e.preventDefault();
+  });
+  $("#adminBox").addEventListener("keydown", e => {
+    if(e.target.closest(".restock") && e.key === "Enter"){ e.preventDefault(); e.target.closest(".restock").querySelector('[data-act="restock"]').click(); }
+    if(e.target.classList.contains("pin") && e.key === "Enter"){ e.preventDefault(); e.target.blur(); }
+    if(e.target.tagName === "INPUT" && e.target.closest("#addForm") && e.key === "Enter"){ e.preventDefault(); addProduct(); }
+  });
+  $("#adminBox").addEventListener("change", e => {
+    if(e.target.id === "fCat"){ $("#newCatBox").style.display = e.target.value === "__new" ? "block" : "none"; return; }
+    if(e.target.dataset.act === "setprice" || e.target.dataset.act === "setcost"){
+      const p = byId(Number(e.target.closest("tr").dataset.id)); if(!p) return;
+      const field = e.target.dataset.act === "setprice" ? "price" : "cost";
+      const v = parseFloat(e.target.value);
+      if(isNaN(v) || v < 0){ e.target.value = p[field]; toast("Escribe un monto válido", "bad"); return; }
+      p[field] = Math.round(v * 100) / 100;
+      e.target.value = p[field];
+      save(); renderGrid(); renderCart();
+      if(p.price < p.cost) toast("⚠️ " + p.name + ": el precio (" + money(p.price) + ") queda por debajo del costo (" + money(p.cost) + ")", "warn");
+      else toast((field === "price" ? "Precio" : "Costo") + " de " + p.name + ": " + money(p[field]), "ok");
+      return;
+    }
+    if(e.target.dataset.act === "setcat"){
+      const p = byId(Number(e.target.closest("tr").dataset.id)); if(!p) return;
+      p.cat = e.target.value; save(); renderCats(); renderGrid(); toast(p.name+" → "+p.cat,"ok");
+    }
+  });
+
+  /* ---------- Respaldo: descargar y restaurar ---------- */
+  const pad2 = n => String(n).padStart(2, "0");
+  const isNum = v => typeof v === "number" && isFinite(v);
+
+  function downloadBackup(){
+    const now = new Date();
+    const payload = {
+      app: "caja-registradora",
+      key: KEY,
+      version: 1,
+      exportedAt: now.toISOString(),
+      data: state          // productos, categorías, ventas y contadores
+    };
+    const stamp = now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) + "_" + pad2(now.getHours()) + "-" + pad2(now.getMinutes());
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "respaldo-caja-" + stamp + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast("💾 Respaldo descargado: " + state.products.length + " productos y " + state.sales.length + " ventas", "ok");
+  }
+
+  // Revisa el contenido del archivo. Devuelve {state, exportedAt} listo para usar, o {error} con el motivo.
+  function parseBackup(text){
+    let obj;
+    try{ obj = JSON.parse(text); }
+    catch(e){ return {error: "El archivo no es un JSON válido. Elige un archivo creado con «Descargar Respaldo»."}; }
+    const d = obj && obj.data && typeof obj.data === "object" ? obj.data : obj;   // acepta también el estado "pelón"
+    if(!d || !Array.isArray(d.products)) return {error: "El archivo no parece un respaldo de la caja: no trae la lista de productos."};
+    const sales = Array.isArray(d.sales) ? d.sales : [];
+
+    const ids = new Set();
+    for(const p of d.products){
+      if(!p || typeof p.name !== "string" || !isNum(p.id) || !isNum(p.price) || !isNum(p.cost) || !isNum(p.stock))
+        return {error: "Hay un producto dañado en el respaldo" + (p && typeof p.name === "string" ? ": \"" + p.name + "\"" : "") + "."};
+      if(ids.has(p.id)) return {error: "El respaldo tiene dos productos con el mismo id (" + p.id + ")."};
+      ids.add(p.id);
+    }
+    const nos = new Set();
+    for(const s of sales){
+      const ok = s && isNum(s.no) && typeof s.date === "string" && !isNaN(new Date(s.date)) &&
+        isNum(s.total) && isNum(s.cash) && isNum(s.change) && Array.isArray(s.items) &&
+        s.items.every(i => i && isNum(i.id) && typeof i.name === "string" && isNum(i.qty) && isNum(i.price) && isNum(i.cost));
+      if(!ok) return {error: "Hay una venta dañada en el respaldo" + (s && isNum(s.no) ? " (ticket #" + s.no + ")" : "") + "."};
+      if(nos.has(s.no)) return {error: "El respaldo tiene dos ventas con el mismo número de ticket (#" + s.no + ")."};
+      nos.add(s.no);
+    }
+
+    const maxId = d.products.reduce((m, p) => Math.max(m, p.id), 0);
+    const maxNo = sales.reduce((m, s) => Math.max(m, s.no), 0);
+    const st = {
+      products: d.products.map(p => ({id: p.id, name: p.name, price: p.price, cost: p.cost, stock: p.stock,
+                                       sold: isNum(p.sold) ? p.sold : 0, cat: typeof p.cat === "string" ? p.cat : ""})),
+      sales: sales,
+      cats: Array.isArray(d.cats) ? d.cats.filter(c => typeof c === "string" && c) : [],
+      nextId: Math.max(isNum(d.nextId) ? d.nextId : 0, maxId + 1),
+      ticketNo: Math.max(isNum(d.ticketNo) ? d.ticketNo : 0, maxNo + 1)
+    };
+    if(typeof d.pin === "string" && PIN_RE.test(d.pin)) st.pin = d.pin;   // respaldos viejos no lo traen
+    return {state: migrate(st), exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : ""};
+  }
+
+  function restoreBackup(file){
+    if(!file) return;
+    if(file.size > 20 * 1024 * 1024){ toast("El archivo es demasiado grande para ser un respaldo", "bad"); return; }
+    const reader = new FileReader();
+    reader.onerror = () => toast("No se pudo leer el archivo", "bad");
+    reader.onload = async () => {
+      const r = parseBackup(String(reader.result));
+      if(r.error){ await dialog({title: "No se pudo cargar el respaldo", msg: r.error, okText: "Entendido"}); return; }
+      const when = r.exportedAt && !isNaN(new Date(r.exportedAt)) ? " del " + fmtDate(r.exportedAt) : "";
+      const ok = await dialog({
+        title: "Cargar respaldo",
+        msg: "El respaldo" + when + " trae " + r.state.products.length + " productos y " + r.state.sales.length + " ventas. " +
+             "Reemplazará todo lo que hay ahora (" + state.products.length + " productos y " + state.sales.length + " ventas)." +
+             (r.state.pin && r.state.pin !== getPin() ? " El PIN de administrador también cambiará al que tenía el respaldo." : "") + " ¿Continuar?",
+        okText: "Restaurar", danger: true
+      });
+      if(ok !== true) return;
+      if(!r.state.pin && state.pin) r.state.pin = state.pin;   // un respaldo sin PIN no debe borrar el actual
+      state = r.state;
+      cart = []; activeCat = "Todas"; adminQ = ""; lastAddedId = null;
+      $("#search").value = "";
+      let saved = true;
+      try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ saved = false; }
+      renderCats(); renderGrid(); renderCart();
+      if(adminOK) renderAdmin();
+      if(saved) toast("✅ Respaldo restaurado: " + state.products.length + " productos y " + state.sales.length + " ventas", "ok");
+      else toast("⚠️ Se restauró, pero este navegador no pudo guardarlo. Se perderá al cerrar.", "warn");
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- Cambiar PIN de administrador ---------- */
+  function openPinModal(){
+    ["#pinOld", "#pinNew", "#pinNew2"].forEach(s => { $(s).value = ""; });
+    $("#pinMsg").textContent = "";
+    $("#pinModal").classList.add("show");
+    setTimeout(() => $("#pinOld").focus(), 60);
+  }
+  function closePinModal(){
+    ["#pinOld", "#pinNew", "#pinNew2"].forEach(s => { $(s).value = ""; });
+    $("#pinModal").classList.remove("show");
+  }
+  function savePin(){
+    const fail = (t, sel) => { $("#pinMsg").textContent = t; if(sel) $(sel).focus(); };
+    const cur = $("#pinOld").value, nu = $("#pinNew").value, nu2 = $("#pinNew2").value;
+    if(cur !== getPin()){ fail("El PIN actual no es correcto", "#pinOld"); return; }
+    if(!PIN_RE.test(nu)){ fail("El PIN nuevo debe tener de 4 a 6 números", "#pinNew"); return; }
+    if(nu === cur){ fail("El PIN nuevo es igual al actual", "#pinNew"); return; }
+    if(nu !== nu2){ fail("Los PIN nuevos no coinciden", "#pinNew2"); return; }
+    const prev = state.pin;
+    state.pin = nu;
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ state.pin = prev; fail("Este navegador no pudo guardar el PIN. Inténtalo en Safari."); return; }
+    closePinModal();
+    toast("🔑 PIN actualizado. Úsalo la próxima vez que entres.", "ok");
+  }
+  $("#pinSave").addEventListener("click", savePin);
+  $("#pinCancel").addEventListener("click", closePinModal);
+  $("#pinModal").addEventListener("input", e => {
+    if(e.target.tagName === "INPUT") e.target.value = e.target.value.replace(/\D/g, "");   // solo números
+  });
+  $("#pinModal").addEventListener("keydown", e => {
+    if(e.key === "Enter" && e.target.tagName === "INPUT"){ e.preventDefault(); savePin(); }
+  });
+
+  /* ---------- Corte del día ---------- */
+  let cutKey = "", cutInfo = null;
+  const dayKey = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());   // día local, no UTC
+  const keyToDate = k => { const p = k.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  const fmtDay = k => keyToDate(k).toLocaleDateString("es-MX", {weekday:"long", day:"2-digit", month:"long", year:"numeric"});
+  const fmtHour = iso => new Date(iso).toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit", hour12:false});
+  const tno = n => "#" + String(n).padStart(5, "0");
+
+  function openCut(){
+    $("#cutModal").classList.add("show");
+    renderCut(dayKey(new Date()));
+  }
+  function renderCut(key){
+    cutKey = key;
+    $("#cutDate").value = key;
+    const sales = state.sales.filter(s => dayKey(new Date(s.date)) === key).sort((a, b) => a.no - b.no);
+    let revenue = 0, cost = 0, units = 0;
+    const map = {};
+    sales.forEach(s => s.items.forEach(i => {
+      revenue += i.price * i.qty; cost += i.cost * i.qty; units += i.qty;
+      const m = map[i.id] || (map[i.id] = {name: i.name, qty: 0, total: 0});
+      m.qty += i.qty; m.total += i.price * i.qty;
+    }));
+    const rows = Object.values(map).sort((a, b) => b.qty - a.qty || b.total - a.total);
+    cutInfo = {key, sales, revenue, cost, profit: revenue - cost, units, rows, fondo: 0, expected: revenue, counted: null};
+    const profit = cutInfo.profit;
+    $("#cutBody").innerHTML = `
+      <div class="cuthead"><b>${esc(STORE_NAME)}</b><br>Corte del día · ${esc(fmtDay(key))}</div>
+      <div class="kpis">
+        <div class="kpi"><span>Ventas del día</span><b>${money(revenue)}</b></div>
+        <div class="kpi"><span>Costo</span><b>${money(cost)}</b></div>
+        <div class="kpi profit ${profit < 0 ? "neg" : ""}"><span>Ganancia</span><b>${money(profit)}</b></div>
+        <div class="kpi"><span>Tickets / Unidades</span><b>${sales.length} / ${units}</b></div>
+      </div>
+      ${sales.length ? `
+        <div class="cutmeta">Tickets ${tno(sales[0].no)} a ${tno(sales[sales.length - 1].no)} · de ${fmtHour(sales[0].date)} a ${fmtHour(sales[sales.length - 1].date)}</div>
+        <table><thead><tr><th>Producto</th><th class="r">Uds.</th><th class="r">Importe</th></tr></thead><tbody>
+          ${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="r">${r.qty}</td><td class="r">${money(r.total)}</td></tr>`).join("")}
+          <tr><td><b>Total</b></td><td class="r"><b>${units}</b></td><td class="r"><b>${money(revenue)}</b></td></tr>
+        </tbody></table>` : '<div class="empty">No hay ventas en este día</div>'}
+      <h3 style="margin:20px 0 10px">💵 Efectivo en caja</h3>
+      <div class="row2">
+        <div><label>Fondo inicial</label><input class="inp" id="cutFondo" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+        <div><label>Efectivo contado</label><input class="inp" id="cutContado" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+      </div>
+      <div id="cutCash"></div>`;
+    updateCutCash();
+  }
+  // Recalcula solo el cuadro de efectivo (no redibuja los campos, así no se pierde el cursor)
+  function updateCutCash(){
+    const fondo = num($("#cutFondo").value), cont = num($("#cutContado").value);
+    const f = isNaN(fondo) || fondo < 0 ? 0 : fondo;
+    const counted = isNaN(cont) ? null : cont;
+    const expected = f + cutInfo.revenue;
+    cutInfo.fondo = f; cutInfo.expected = expected; cutInfo.counted = counted;
+    let diffHtml = "";
+    if(counted !== null){
+      const diff = Math.round((counted - expected) * 100) / 100;
+      cutInfo.diff = diff;
+      const txt = diff === 0 ? "Caja cuadrada" : (diff > 0 ? "Sobran " + money(diff) : "Faltan " + money(-diff));
+      const color = diff === 0 ? "var(--ok)" : (diff > 0 ? "#b45309" : "var(--bad)");
+      diffHtml = `<div class="cutrow"><span>Efectivo contado</span><span>${money(counted)}</span></div>
+                  <div class="cutrow total" style="color:${color}"><span>Diferencia</span><span>${txt}</span></div>`;
+    } else cutInfo.diff = null;
+    $("#cutCash").innerHTML = `
+      <div class="cutrow"><span>Ventas en efectivo</span><span>${money(cutInfo.revenue)}</span></div>
+      <div class="cutrow"><span>Fondo inicial</span><span>${money(f)}</span></div>
+      <div class="cutrow total"><span>Debe haber en caja</span><span>${money(expected)}</span></div>
+      ${diffHtml}`;
+  }
+  function cutText(){
+    const c = cutInfo, L = [];
+    L.push("CORTE DEL DÍA — " + STORE_NAME, fmtDay(c.key), "");
+    L.push("Tickets: " + c.sales.length + (c.sales.length ? " (" + tno(c.sales[0].no) + " a " + tno(c.sales[c.sales.length - 1].no) + ")" : ""));
+    L.push("Unidades: " + c.units, "Ventas: " + money(c.revenue), "Costo: " + money(c.cost), "Ganancia: " + money(c.profit));
+    if(c.rows.length){ L.push("", "Productos vendidos:"); c.rows.forEach(r => L.push(r.qty + " × " + r.name + " — " + money(r.total))); }
+    L.push("", "Fondo inicial: " + money(c.fondo), "Debe haber en caja: " + money(c.expected));
+    if(c.counted !== null) L.push("Efectivo contado: " + money(c.counted), "Diferencia: " + (c.diff === 0 ? "caja cuadrada" : (c.diff > 0 ? "sobran " + money(c.diff) : "faltan " + money(-c.diff))));
+    return L.join("\n");
+  }
+  async function copyText(t){
+    try{ await navigator.clipboard.writeText(t); return true; }
+    catch(e){
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = t; ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+        document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, t.length);
+        const ok = document.execCommand("copy"); ta.remove(); return ok;
+      }catch(e2){ return false; }
+    }
+  }
+  $("#cutClose").addEventListener("click", () => $("#cutModal").classList.remove("show"));
+  $("#cutDate").addEventListener("change", e => { if(e.target.value) renderCut(e.target.value); });
+  $("#cutPrev").addEventListener("click", () => { const d = keyToDate(cutKey); d.setDate(d.getDate() - 1); renderCut(dayKey(d)); });
+  $("#cutNext").addEventListener("click", () => { const d = keyToDate(cutKey); d.setDate(d.getDate() + 1); renderCut(dayKey(d)); });
+  $("#cutToday").addEventListener("click", () => renderCut(dayKey(new Date())));
+  $("#cutBody").addEventListener("input", e => { if(e.target.id === "cutFondo" || e.target.id === "cutContado") updateCutCash(); });
+  $("#cutCopy").addEventListener("click", async () => {
+    const ok = await copyText(cutText());
+    toast(ok ? "📋 Resumen copiado" : "No se pudo copiar el resumen", ok ? "ok" : "bad");
+  });
+  $("#cutPrint").addEventListener("click", () => {
+    const done = () => document.body.classList.remove("printing-cut");
+    document.body.classList.add("printing-cut");
+    window.addEventListener("afterprint", done, {once: true});
+    setTimeout(done, 5000);   // por si el visor no avisa al terminar; los estilos de impresión no afectan la pantalla
+    window.print();
+  });
+
+  // Paneles plegables (más vendidos, agregar producto, inventario): se abren y cierran sin redibujar
+  $("#adminBox").addEventListener("click", e => {
+    const f = e.target.closest("[data-fold]"); if(!f) return;
+    const k = f.dataset.fold;
+    foldOpen[k] = !foldOpen[k];
+    $('[data-foldbody="' + k + '"]').style.display = foldOpen[k] ? "block" : "none";
+    f.setAttribute("aria-expanded", String(foldOpen[k]));
+    f.querySelector(".chev").textContent = foldOpen[k] ? "▾" : "▸";
+  });
+
+  // Sin async antes de .click(): iOS solo abre el selector de archivos dentro del toque directo
+  $("#adminBox").addEventListener("click", e => {
+    if(e.target.closest("#openCut")) openCut();
+    else if(e.target.closest("#changePin")) openPinModal();
+    else if(e.target.closest("#backupDownload")) downloadBackup();
+    else if(e.target.closest("#backupLoad")) $("#backupFile").click();
+  });
+  $("#backupFile").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    restoreBackup(f);
+    e.target.value = "";   // permite elegir el mismo archivo otra vez
+  });
+
+  // Si otra pestaña modifica los datos, se refresca "en tiempo real"
+  window.addEventListener("storage", e => {
+    if(e.key !== KEY) return;
+    state = load(); renderCats(); renderGrid(); renderCart();
+    if(adminOK) renderAdmin();
+  });
+
+  /* ================= INICIO ================= */
+  try{ localStorage.setItem("__pos_t", "1"); localStorage.removeItem("__pos_t"); }
+  catch(e){ $("#noStore").style.display = "block"; }   // visor sin almacenamiento: avisar que no se guardará nada
+  buildPad(); renderDots(); renderCats(); renderGrid(); renderCart();
+})();
+</script>
+</body>
+</html>
